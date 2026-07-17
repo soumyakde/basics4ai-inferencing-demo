@@ -1,21 +1,28 @@
 """
 Basics4AI — Inferencing Comparison Demo
 ========================================
-A facilitator uploads a reading-passage worksheet PDF (passage + printed
-questions) and a separate answer-key PDF (sample answers + "How do you know
-this?" evidence). Because PDF layouts vary too much to parse reliably, the
-facilitator reads both extracted texts on screen and manually enters a
-dynamic list of {question, reference answer, reference evidence} — the same
-manual-entry principle as the single-question version, just extended.
+Two separate pages:
 
-For each question, Claude, GPT, and Gemini each answer once (cached, not
-re-run per child). Children enter their own answer + evidence per question
-and compare all five side by side: their own, the three AIs', and the
-answer key.
+- /instructor — access-code gated. Upload a passage worksheet PDF and a
+  separate answer-key PDF; both get extracted and shown on screen. Because
+  PDF layouts vary too much to parse reliably, the instructor manually
+  enters a dynamic list of {question, reference answer, reference evidence}
+  while reading the extracted text, then activates the assignment — which
+  asks Claude, GPT, and Gemini once per question (cached, not re-run per
+  student).
+
+- / (student page) — public, no code needed. Shows only the passage and the
+  questions. Each question has an answer field and a dynamic list of
+  evidence entries (a student's answer can cite more than one piece of
+  evidence). The 3 AI panels stay hidden until the student clicks "Compare
+  my answers", at which point every question's AI answers are revealed
+  together with a side-by-side table (student vs. the 3 AIs) for
+  discussion. The answer key is intentionally never sent to the student
+  page at all — /api/state strips it server-side, not just in the UI.
 
 Non-research demo: nothing is persisted beyond the current session state
-(one JSON file on disk for restart-resilience); no child responses or PII
-are stored server-side.
+(one JSON file on disk for restart-resilience); no student responses or
+PII are stored server-side.
 """
 from __future__ import annotations
 
@@ -153,16 +160,50 @@ def _check_code(access_code: str):
 
 
 @app.get("/")
-def serve_index():
+def serve_student_page():
     return FileResponse(BASE_DIR / "static" / "index.html")
+
+
+@app.get("/instructor")
+def serve_instructor_page():
+    return FileResponse(BASE_DIR / "static" / "instructor.html")
+
+
+def _student_safe_questions() -> list:
+    """Strip answer-key fields — students only ever see question + AI responses."""
+    return [
+        {"id": q["id"], "question": q["question"], "ai_responses": q["ai_responses"]}
+        for q in _state["questions"]
+    ]
 
 
 @app.get("/api/state")
 def get_state():
+    """Public, student-facing state — deliberately excludes the answer key and
+    reference answers/evidence, so they never reach the student's browser at all
+    (not just hidden in the UI)."""
     return JSONResponse({
         "has_passage": bool(_state["passage_text"]),
         "passage_text": _state["passage_text"],
         "passage_filename": _state["passage_filename"],
+        "questions": _student_safe_questions(),
+        "generating": _state["generating"],
+        "available_models": get_available_models(),
+    })
+
+
+@app.post("/api/instructor/state")
+def get_instructor_state(access_code: str = Form(...)):
+    """Access-code gated, full state including the answer key and reference
+    answers/evidence — for the instructor page to confirm what's currently
+    active."""
+    _check_code(access_code)
+    return JSONResponse({
+        "has_passage": bool(_state["passage_text"]),
+        "passage_text": _state["passage_text"],
+        "passage_filename": _state["passage_filename"],
+        "answer_key_text": _state["answer_key_text"],
+        "answer_key_filename": _state["answer_key_filename"],
         "questions": _state["questions"],
         "generating": _state["generating"],
         "available_models": get_available_models(),

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inferencing Comparison — Basics4AI</title>
-<meta name="description" content="Basics4AI inferencing demo: read a short worksheet passage, answer each inferencing question with evidence, then compare your responses to Claude, GPT, Gemini, and the answer key.">
+<meta name="description" content="Basics4AI inferencing demo: read a short worksheet passage, answer each inferencing question with evidence, then compare your responses to Claude, GPT, and Gemini.">
 <link rel="stylesheet" href="/static/base.css">
 <link rel="stylesheet" href="/static/app.css">
 </head>
@@ -20,118 +20,69 @@
   <div class="container">
     <span class="eyebrow">Module 4 in action</span>
     <h1>Compare your inferences to Claude, GPT, and Gemini</h1>
-    <p class="lede">Read the worksheet passage below, answer each question in your own words with evidence, then see how three AI systems answered — and how your class's answer key compares too.</p>
+    <p class="lede">Read the worksheet passage below and answer each question in your own words — you can cite more than one piece of evidence if you need to. When you're done, compare your answers to how three AI systems answered the exact same questions.</p>
   </div>
 </header>
 
 <div class="demo-shell">
 
-  <details class="facilitator-panel" id="facilitatorPanel">
-    <summary>Facilitator: set up this session</summary>
+  <div id="emptyState" class="empty-state">
+    No worksheet is active yet. Ask your instructor to activate one.
+  </div>
 
-    <div id="extractStep" class="facilitator-form">
-      <div>
-        <label for="accessCode">Access code</label>
-        <input type="password" id="accessCode" autocomplete="off" required>
-      </div>
-      <div>
-        <label for="passagePdf">Passage worksheet (PDF — passage + printed questions)</label>
-        <input type="file" id="passagePdf" accept="application/pdf" required>
-      </div>
-      <div>
-        <label for="answerKeyPdf">Answer key (PDF — sample answers + "How do you know this?" evidence)</label>
-        <input type="file" id="answerKeyPdf" accept="application/pdf" required>
-      </div>
-      <div>
-        <button type="button" class="btn btn-primary" id="extractBtn">Read PDFs</button>
-        <span id="extractStatus" class="form-status"></span>
-      </div>
-    </div>
+  <div id="sessionArea" style="display:none;">
+    <span class="eyebrow">Reading passage <span id="passageFilename"></span></span>
+    <div class="passage-box" id="passageText"></div>
 
-    <div id="reviewStep" style="display:none;">
-      <div class="facilitator-form">
-        <div>
-          <label>Passage text (for your reference — copy question wording from here)</label>
-          <div class="readonly-box" id="extractedPassage"></div>
-        </div>
-        <div>
-          <label>Answer key text (for your reference — copy answers/evidence from here)</label>
-          <div class="readonly-box" id="extractedAnswerKey"></div>
-        </div>
-      </div>
+    <div id="questionBlocks"></div>
 
-      <h3 style="margin-top:22px;">Questions for this worksheet</h3>
-      <div id="questionRows"></div>
-      <button type="button" class="btn btn-outline" id="addQuestionBtn" style="margin-top:10px;">+ Add question</button>
-
-      <div style="margin-top:18px;">
-        <button type="button" class="btn btn-primary" id="activateBtn">Activate &amp; ask the AIs</button>
-        <button type="button" class="btn btn-outline" id="regenerateBtn">Retry AI answers only</button>
-        <span id="activateStatus" class="form-status"></span>
-      </div>
-      <p class="fine">Activating asks Claude, GPT, and Gemini once per question — their answers are then reused for every child.</p>
-    </div>
-  </details>
-
-  <div id="mainArea">
-    <div class="empty-state" id="emptyState">
-      No worksheet is active yet. A facilitator needs to open the panel above and activate one.
-    </div>
-
-    <div id="sessionArea" style="display:none;">
-      <span class="eyebrow">Reading passage <span id="passageFilename"></span></span>
-      <div class="passage-box" id="passageText"></div>
-
-      <div id="questionBlocks"></div>
+    <div style="margin: 30px 0;">
+      <button type="button" class="btn btn-primary" id="compareAllBtn">Compare my answers to the AIs</button>
+      <p class="fine" id="compareHint">Answer every question above first — this reveals how Claude, GPT, and Gemini answered, plus a comparison table for each question.</p>
     </div>
   </div>
 
 </div>
-
-<template id="questionRowTemplate">
-  <div class="question-row">
-    <label>Question</label>
-    <textarea class="q-question" placeholder="Copy the question text from the passage PDF above."></textarea>
-    <label>Reference answer (from answer key)</label>
-    <textarea class="q-ref-answer" placeholder="Copy the sample answer from the answer key PDF above."></textarea>
-    <label>Reference evidence — "How do you know this?" (from answer key)</label>
-    <textarea class="q-ref-evidence" placeholder="Copy the supporting evidence from the answer key PDF above."></textarea>
-    <button type="button" class="btn btn-outline remove-row-btn">Remove this question</button>
-  </div>
-</template>
 
 <template id="questionBlockTemplate">
   <div class="question-block">
     <span class="eyebrow">Question <span class="q-index"></span></span>
     <div class="question-box q-text"></div>
 
-    <form class="child-form">
+    <div class="child-form">
       <div>
         <label>Your answer</label>
-        <textarea class="child-answer" placeholder="What do you think, and why?" required></textarea>
+        <textarea class="child-answer" placeholder="What do you think, and why?"></textarea>
       </div>
       <div>
-        <label>Your evidence</label>
-        <textarea class="child-evidence" placeholder="Quote or point to the part of the passage that supports your answer." required></textarea>
-      </div>
-      <div>
-        <button type="submit" class="btn btn-primary">Compare the responses</button>
-      </div>
-    </form>
-
-    <span class="eyebrow">How Claude, GPT, and Gemini answered</span>
-    <div class="ai-panels"></div>
-
-    <div class="compare-area" style="display:none;">
-      <span class="eyebrow">Side-by-side comparison</span>
-      <h3>All five responses, as-is</h3>
-      <div class="compare-table-wrap">
-        <table>
-          <thead><tr><th>Source</th><th>Answer</th><th>Evidence cited</th></tr></thead>
-          <tbody class="compare-body"></tbody>
-        </table>
+        <label>Your evidence <span class="fine">(you can add more than one)</span></label>
+        <div class="evidence-list"></div>
+        <button type="button" class="btn btn-outline add-evidence-btn" style="margin-top:6px;">+ Add another piece of evidence</button>
       </div>
     </div>
+
+    <div class="ai-reveal" style="display:none;">
+      <span class="eyebrow">How Claude, GPT, and Gemini answered</span>
+      <div class="ai-panels"></div>
+
+      <div class="compare-area">
+        <span class="eyebrow">Side-by-side comparison</span>
+        <h3>Your answer vs. the AIs, as-is</h3>
+        <div class="compare-table-wrap">
+          <table>
+            <thead><tr><th>Source</th><th>Answer</th><th>Evidence cited</th></tr></thead>
+            <tbody class="compare-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="evidenceRowTemplate">
+  <div class="evidence-row">
+    <textarea class="evidence-item" placeholder="Quote or point to the part of the passage that supports your answer."></textarea>
+    <button type="button" class="remove-evidence-row-btn" title="Remove this evidence">✕</button>
   </div>
 </template>
 
@@ -141,6 +92,6 @@
   </div>
 </footer>
 
-<script src="/static/app.js"></script>
+<script src="/static/student.js"></script>
 </body>
 </html>

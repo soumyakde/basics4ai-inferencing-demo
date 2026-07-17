@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instructor Setup — Basics4AI Inferencing Demo</title>
+<meta name="description" content="Instructor/facilitator page for the Basics4AI inferencing demo: upload a worksheet + answer key, enter questions, and activate the assignment.">
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="brand"><span class="mark">4AI</span>Basics4AI — Instructor Setup</div>
+    <a href="/" class="btn btn-outline" style="padding:8px 16px;">Student view →</a>
+  </div>
+</nav>
+
+<header class="page-hero">
+  <div class="container">
+    <span class="eyebrow">Instructor / facilitator</span>
+    <h1>Set up an inferencing assignment</h1>
+    <p class="lede">Upload the passage worksheet and its answer key, review the extracted text, enter the questions students will see, then activate. Students go to the main site link — they never see this page or the answer key.</p>
+  </div>
+</header>
+
+<div class="demo-shell">
+
+  <div id="extractStep" class="facilitator-form">
+    <div>
+      <label for="accessCode">Access code</label>
+      <input type="password" id="accessCode" autocomplete="off" required>
+    </div>
+    <div>
+      <label for="passagePdf">Passage worksheet (PDF — passage + printed questions)</label>
+      <input type="file" id="passagePdf" accept="application/pdf" required>
+    </div>
+    <div>
+      <label for="answerKeyPdf">Answer key (PDF — sample answers + "How do you know this?" evidence)</label>
+      <input type="file" id="answerKeyPdf" accept="application/pdf" required>
+    </div>
+    <div>
+      <button type="button" class="btn btn-primary" id="extractBtn">Read PDFs</button>
+      <span id="extractStatus" class="form-status"></span>
+    </div>
+  </div>
+
+  <div id="reviewStep" style="display:none;">
+    <div class="facilitator-form">
+      <div>
+        <label>Passage text (for your reference — copy question wording from here)</label>
+        <div class="readonly-box" id="extractedPassage"></div>
+      </div>
+      <div>
+        <label>Answer key text (for your reference — copy answers/evidence from here)</label>
+        <div class="readonly-box" id="extractedAnswerKey"></div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:22px;">Questions students will see</h3>
+    <div id="questionRows"></div>
+    <button type="button" class="btn btn-outline" id="addQuestionBtn" style="margin-top:10px;">+ Add question</button>
+
+    <div style="margin-top:18px;">
+      <button type="button" class="btn btn-primary" id="activateBtn">Activate this assignment</button>
+      <button type="button" class="btn btn-outline" id="regenerateBtn">Retry AI answers only</button>
+      <span id="activateStatus" class="form-status"></span>
+    </div>
+    <p class="fine">Activating asks Claude, GPT, and Gemini once per question — their answers are cached and reused for every student. Reference answers/evidence you enter here are for your own use only; students never see them.</p>
+  </div>
+
+  <div id="currentSetup" style="margin-top:40px; display:none;">
+    <span class="eyebrow">Currently active for students</span>
+    <h2>What's live right now</h2>
+    <div id="currentSummary"></div>
+  </div>
+
+</div>
+
+<template id="questionRowTemplate">
+  <div class="question-row">
+    <label>Question</label>
+    <textarea class="q-question" placeholder="Copy the question text from the passage PDF above."></textarea>
+    <label>Reference answer (from answer key) — for your use only</label>
+    <textarea class="q-ref-answer" placeholder="Copy the sample answer from the answer key PDF above."></textarea>
+    <label>Reference evidence — "How do you know this?" — for your use only</label>
+    <textarea class="q-ref-evidence" placeholder="Copy the supporting evidence from the answer key PDF above."></textarea>
+    <button type="button" class="btn btn-outline remove-row-btn">Remove this question</button>
+  </div>
+</template>
+
+<footer>
+  <div class="container footer-inner">
+    <p class="fine">Basics4AI · Non-research demo — nothing typed here is stored beyond the active session. Part of Soumya K. De's PhD research, University at Buffalo.</p>
+  </div>
+</footer>
+
+<script src="/static/instructor.js"></script>
+</body>
+</html>

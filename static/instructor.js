@@ -1,6 +1,3 @@
-const MODEL_LABELS = { claude: "Claude", gpt: "ChatGPT", gemini: "Gemini" };
-
-let currentState = null;
 let extractedData = null; // { passage_text, passage_filename, answer_key_text, answer_key_filename }
 
 function escapeHtml(str) {
@@ -10,126 +7,7 @@ function escapeHtml(str) {
 }
 
 // ---------------------------------------------------------------------
-// Load + render current session state (children-facing view)
-// ---------------------------------------------------------------------
-
-async function loadState() {
-  const res = await fetch("/api/state");
-  const state = await res.json();
-  currentState = state;
-  render(state);
-}
-
-function render(state) {
-  const emptyState = document.getElementById("emptyState");
-  const sessionArea = document.getElementById("sessionArea");
-
-  if (!state.has_passage) {
-    emptyState.style.display = "block";
-    sessionArea.style.display = "none";
-    return;
-  }
-  emptyState.style.display = "none";
-  sessionArea.style.display = "block";
-
-  document.getElementById("passageFilename").textContent = state.passage_filename ? `(${state.passage_filename})` : "";
-  document.getElementById("passageText").textContent = state.passage_text;
-
-  renderQuestionBlocks(state);
-}
-
-function renderQuestionBlocks(state) {
-  const container = document.getElementById("questionBlocks");
-  container.innerHTML = "";
-  const tpl = document.getElementById("questionBlockTemplate");
-
-  (state.questions || []).forEach((q, idx) => {
-    const node = tpl.content.cloneNode(true);
-    const block = node.querySelector(".question-block");
-    block.dataset.qid = q.id;
-
-    node.querySelector(".q-index").textContent = String(idx + 1);
-    node.querySelector(".q-text").textContent = q.question;
-
-    renderAiPanels(node, q, state.generating);
-
-    const form = node.querySelector(".child-form");
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const answer = form.querySelector(".child-answer").value.trim();
-      const evidence = form.querySelector(".child-evidence").value.trim();
-      buildCompareTable(block, q, answer, evidence);
-      block.querySelector(".compare-area").scrollIntoView({ behavior: "smooth" });
-    });
-
-    container.appendChild(node);
-  });
-}
-
-function renderAiPanels(node, q, generating) {
-  const wrap = node.querySelector(".ai-panels");
-  wrap.innerHTML = "";
-  const models = ["claude", "gpt", "gemini"];
-  const responses = q.ai_responses || {};
-
-  models.forEach((key) => {
-    const panel = document.createElement("div");
-    const resp = responses[key];
-
-    if (generating || !resp || Object.keys(responses).length === 0) {
-      panel.className = "ai-panel pending";
-      panel.innerHTML = `<h4>${MODEL_LABELS[key]}</h4><p class="fine">${generating ? "Thinking…" : "Not yet generated."}</p>`;
-    } else if (resp.error) {
-      panel.className = "ai-panel errored";
-      panel.innerHTML = `<h4>${MODEL_LABELS[key]}</h4><p class="err-text">${escapeHtml(resp.error)}</p>`;
-    } else {
-      panel.className = "ai-panel";
-      panel.innerHTML = `
-        <h4>${MODEL_LABELS[key]}</h4>
-        <div class="a-label">Answer</div>
-        <div class="a-text">${escapeHtml(resp.answer || "(no answer)")}</div>
-        <div class="a-label">Evidence</div>
-        <div class="a-text">${escapeHtml(resp.evidence || "(no evidence given)")}</div>
-      `;
-    }
-    wrap.appendChild(panel);
-  });
-}
-
-function buildCompareTable(block, q, childAnswer, childEvidence) {
-  const body = block.querySelector(".compare-body");
-  body.innerHTML = "";
-
-  const responses = q.ai_responses || {};
-  const rows = [
-    { label: "You", answer: childAnswer, evidence: childEvidence, error: null },
-  ];
-  ["claude", "gpt", "gemini"].forEach((key) => {
-    const resp = responses[key] || {};
-    rows.push({
-      label: MODEL_LABELS[key],
-      answer: resp.error ? "" : resp.answer,
-      evidence: resp.error ? "" : resp.evidence,
-      error: resp.error,
-    });
-  });
-  rows.push({ label: "Answer key", answer: q.ref_answer, evidence: q.ref_evidence, error: null });
-
-  rows.forEach((row) => {
-    const tr = document.createElement("tr");
-    if (row.error) {
-      tr.innerHTML = `<td class="source-cell">${row.label}</td><td colspan="2" class="err-text">${escapeHtml(row.error)}</td>`;
-    } else {
-      tr.innerHTML = `<td class="source-cell">${row.label}</td><td>${escapeHtml(row.answer)}</td><td>${escapeHtml(row.evidence)}</td>`;
-    }
-    body.appendChild(tr);
-  });
-
-  block.querySelector(".compare-area").style.display = "block";
-}
-
-// ---------------------------------------------------------------------
-// Facilitator: Step 1 — extract text from both PDFs
+// Step 1 — extract text from both PDFs
 // ---------------------------------------------------------------------
 
 document.getElementById("extractBtn").addEventListener("click", async () => {
@@ -175,7 +53,7 @@ document.getElementById("extractBtn").addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------------
-// Facilitator: Step 2 — dynamic question rows
+// Step 2 — dynamic question rows
 // ---------------------------------------------------------------------
 
 function addQuestionRow() {
@@ -189,7 +67,7 @@ function addQuestionRow() {
 document.getElementById("addQuestionBtn").addEventListener("click", addQuestionRow);
 
 // ---------------------------------------------------------------------
-// Facilitator: Step 3 — activate (stores questions, asks the 3 LLMs)
+// Step 3 — activate (stores questions, asks the 3 LLMs)
 // ---------------------------------------------------------------------
 
 document.getElementById("activateBtn").addEventListener("click", async () => {
@@ -239,10 +117,9 @@ document.getElementById("activateBtn").addEventListener("click", async () => {
       statusEl.className = "form-status error";
       return;
     }
-    statusEl.textContent = "Activated.";
+    statusEl.textContent = "Activated. Students can now use the site.";
     statusEl.className = "form-status ok";
-    document.getElementById("facilitatorPanel").removeAttribute("open");
-    await loadState();
+    await loadCurrentSetup(accessCode);
   } catch (err) {
     statusEl.textContent = "Network error: " + err;
     statusEl.className = "form-status error";
@@ -250,7 +127,7 @@ document.getElementById("activateBtn").addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------------
-// Facilitator: retry AI answers only
+// Retry AI answers only
 // ---------------------------------------------------------------------
 
 document.getElementById("regenerateBtn").addEventListener("click", async () => {
@@ -273,11 +150,51 @@ document.getElementById("regenerateBtn").addEventListener("click", async () => {
     }
     statusEl.textContent = "Retried.";
     statusEl.className = "form-status ok";
-    await loadState();
+    await loadCurrentSetup(accessCode);
   } catch (err) {
     statusEl.textContent = "Network error: " + err;
     statusEl.className = "form-status error";
   }
 });
 
-loadState();
+// ---------------------------------------------------------------------
+// Current setup summary (full state, including answer key — instructor only)
+// ---------------------------------------------------------------------
+
+async function loadCurrentSetup(accessCode) {
+  const fd = new FormData();
+  fd.append("access_code", accessCode);
+  const res = await fetch("/api/instructor/state", { method: "POST", body: fd });
+  if (!res.ok) return;
+  const state = await res.json();
+
+  const wrap = document.getElementById("currentSetup");
+  const summary = document.getElementById("currentSummary");
+  if (!state.has_passage) {
+    wrap.style.display = "none";
+    return;
+  }
+  wrap.style.display = "block";
+
+  const questionsHtml = state.questions.map((q, i) => {
+    const models = ["claude", "gpt", "gemini"];
+    const statusBits = models.map((m) => {
+      const r = (q.ai_responses || {})[m];
+      const ok = r && !r.error;
+      return `<span class="badge" style="${ok ? "" : "color:var(--accent);border-color:var(--accent);"}">${m}: ${ok ? "ok" : (r ? "error" : "pending")}</span>`;
+    }).join(" ");
+    return `<div class="card" style="margin-bottom:10px;">
+      <strong>Q${i + 1}.</strong> ${escapeHtml(q.question)}<br>
+      <span class="fine">Reference answer: ${escapeHtml(q.ref_answer || "(none entered)")}</span><br>
+      ${statusBits}
+    </div>`;
+  }).join("");
+
+  summary.innerHTML = `
+    <p class="fine">Passage file: ${escapeHtml(state.passage_filename)} · Answer key file: ${escapeHtml(state.answer_key_filename)}</p>
+    ${questionsHtml}
+  `;
+}
+
+// On load, if an access code + activation already exists this browser session, nothing to prefill —
+// the instructor re-enters their code each visit (kept simple; not treated as a persistent login).

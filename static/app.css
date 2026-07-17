@@ -20,6 +20,7 @@
 .facilitator-form textarea { resize: vertical; min-height: 60px; }
 .form-status { font-size: 0.85rem; margin-top: 4px; }
 .form-status.error { color: var(--accent); }
+.fine.error { color: var(--accent); font-weight: 600; }
 .form-status.ok { color: #2e7d4f; }
 
 .passage-box { border: 1px solid var(--line); background: var(--paper-alt); padding: 22px 24px; margin: 20px 0; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.7; max-height: 360px; overflow-y: auto; }
@@ -59,3 +60,12 @@
 .question-block { border-top: 3px solid var(--accent); padding: 26px 0; margin-top: 10px; }
 .question-block:first-child { border-top: none; margin-top: 0; padding-top: 0; }
 .q-index { font-weight: 700; }
+
+.evidence-list { display: grid; gap: 8px; }
+.evidence-row { display: flex; gap: 8px; align-items: flex-start; }
+.evidence-row textarea { flex: 1; padding: 9px 12px; border: 1px solid var(--line); font-family: var(--font-sans); font-size: 0.92rem; min-height: 50px; resize: vertical; }
+.remove-evidence-row-btn { border: 1px solid var(--line); background: var(--paper); color: var(--ink-soft); width: 34px; height: 34px; cursor: pointer; flex-shrink: 0; }
+.remove-evidence-row-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.question-block.answered { border-top-color: var(--slate); }
+.question-block.unanswered-flag { outline: 2px solid var(--accent); outline-offset: 6px; }
