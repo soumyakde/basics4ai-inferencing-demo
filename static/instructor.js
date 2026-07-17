@@ -39,8 +39,8 @@ document.getElementById("extractBtn").addEventListener("click", async () => {
       return;
     }
     extractedData = data;
-    document.getElementById("extractedPassage").textContent = data.passage_text;
-    document.getElementById("extractedAnswerKey").textContent = data.answer_key_text;
+    document.getElementById("extractedPassage").value = data.passage_text;
+    document.getElementById("extractedAnswerKey").value = data.answer_key_text;
     document.getElementById("reviewStep").style.display = "block";
     document.getElementById("questionRows").innerHTML = "";
     addQuestionRow();
@@ -80,6 +80,19 @@ document.getElementById("activateBtn").addEventListener("click", async () => {
     return;
   }
 
+  // Use the CURRENT textarea contents, not the original extraction — this is
+  // what lets an instructor strip out leaked/garbled text (e.g. leftover
+  // answer fragments from an incompletely-redacted source PDF) before it
+  // ever reaches students. Whatever is in this box is exactly what gets sent.
+  const passageText = document.getElementById("extractedPassage").value.trim();
+  const answerKeyText = document.getElementById("extractedAnswerKey").value.trim();
+
+  if (!passageText) {
+    statusEl.textContent = "Passage text is empty — nothing for students to read.";
+    statusEl.className = "form-status error";
+    return;
+  }
+
   const rows = Array.from(document.querySelectorAll("#questionRows .question-row"));
   const questions = rows.map((row) => ({
     question: row.querySelector(".q-question").value.trim(),
@@ -98,9 +111,9 @@ document.getElementById("activateBtn").addEventListener("click", async () => {
 
   const body = {
     access_code: accessCode,
-    passage_text: extractedData.passage_text,
+    passage_text: passageText,
     passage_filename: extractedData.passage_filename,
-    answer_key_text: extractedData.answer_key_text,
+    answer_key_text: answerKeyText,
     answer_key_filename: extractedData.answer_key_filename,
     questions: questions,
   };
