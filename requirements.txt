@@ -3,7 +3,7 @@ uvicorn[standard]==0.30.6
 python-multipart==0.0.9
 pdfplumber==0.11.4
 pypdf==4.3.1
-anthropic==0.34.2
+anthropic==0.85.0
 openai==1.51.0
 google-genai==0.3.0
 python-dotenv==1.0.1
