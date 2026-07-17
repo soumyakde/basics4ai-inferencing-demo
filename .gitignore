@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+data/*
+!data/.gitkeep
+.DS_Store
+PROJECT_STATUS.md

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inferencing Comparison — Basics4AI</title>
+<meta name="description" content="Basics4AI inferencing demo: read a short passage, answer an inferencing question with evidence, then compare your response to Claude, GPT, and Gemini.">
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="brand"><span class="mark">4AI</span>Basics4AI — Inferencing Demo</div>
+  </div>
+</nav>
+
+<header class="page-hero">
+  <div class="container">
+    <span class="eyebrow">Module 4 in action</span>
+    <h1>Compare your inference to Claude, GPT, and Gemini</h1>
+    <p class="lede">Read the passage below, answer the question in your own words, and cite your evidence — then see how three AI systems answered the exact same question.</p>
+  </div>
+</header>
+
+<div class="demo-shell">
+
+  <details class="facilitator-panel" id="facilitatorPanel">
+    <summary>Facilitator: set up this session</summary>
+    <form class="facilitator-form" id="facilitatorForm">
+      <div>
+        <label for="accessCode">Access code</label>
+        <input type="password" id="accessCode" autocomplete="off" required>
+      </div>
+      <div>
+        <label for="pdfFile">Reading passage (PDF)</label>
+        <input type="file" id="pdfFile" accept="application/pdf" required>
+      </div>
+      <div>
+        <label for="questionInput">Inferencing question</label>
+        <textarea id="questionInput" placeholder="e.g. Why did the character decide to turn back? Use evidence from the passage." required></textarea>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-primary">Activate this passage &amp; ask the AIs</button>
+        <button type="button" class="btn btn-outline" id="regenerateBtn">Retry AI answers only</button>
+        <span id="facilitatorStatus" class="form-status"></span>
+      </div>
+      <p class="fine">Activating a new passage asks Claude, GPT, and Gemini once — their answers are then reused for every child, so re-activating repeatedly isn't necessary. Use "Retry" if one AI shows an error (e.g. a transient rate limit) without re-uploading the PDF.</p>
+    </form>
+  </details>
+
+  <div id="mainArea">
+    <div class="empty-state" id="emptyState">
+      No passage is active yet. A facilitator needs to open the panel above and activate one.
+    </div>
+
+    <div id="sessionArea" style="display:none;">
+      <span class="eyebrow">Reading passage <span id="passageFilename"></span></span>
+      <div class="passage-box" id="passageText"></div>
+
+      <span class="eyebrow">Question</span>
+      <div class="question-box" id="questionText"></div>
+
+      <form class="child-form" id="childForm">
+        <div>
+          <label for="childAnswer">Your answer</label>
+          <textarea id="childAnswer" placeholder="What do you think, and why?" required></textarea>
+        </div>
+        <div>
+          <label for="childEvidence">Your evidence</label>
+          <textarea id="childEvidence" placeholder="Quote or point to the part of the passage that supports your answer." required></textarea>
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary">Compare the responses</button>
+        </div>
+      </form>
+
+      <span class="eyebrow">How Claude, GPT, and Gemini answered</span>
+      <div class="ai-panels" id="aiPanels"></div>
+
+      <div id="compareArea" style="display:none;">
+        <span class="eyebrow">Side-by-side comparison</span>
+        <h2>All four responses, as-is</h2>
+        <div class="compare-table-wrap">
+          <table id="compareTable">
+            <thead><tr><th>Source</th><th>Answer</th><th>Evidence cited</th></tr></thead>
+            <tbody id="compareBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="container footer-inner">
+    <p class="fine">Basics4AI · Non-research demo — nothing typed here is stored. Part of Soumya K. De's PhD research, University at Buffalo.</p>
+  </div>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

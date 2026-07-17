@@ -1,0 +1,50 @@
+/* Demo-specific styles, layered on top of base.css design tokens */
+
+.demo-shell { max-width: 1080px; margin: 0 auto; padding: 28px; }
+
+.facilitator-panel {
+  border: 1px dashed var(--line); background: var(--paper-alt);
+  padding: 20px 22px; margin-bottom: 32px;
+}
+.facilitator-panel.open { border-style: solid; border-color: var(--accent); }
+.facilitator-panel summary { cursor: pointer; font-family: var(--font-mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+.facilitator-form { display: grid; gap: 14px; margin-top: 16px; }
+.facilitator-form label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; color: var(--ink); }
+.facilitator-form input[type="text"],
+.facilitator-form input[type="password"],
+.facilitator-form textarea,
+.facilitator-form input[type="file"] {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--line); background: var(--paper);
+  color: var(--ink); font-family: var(--font-sans); font-size: 0.92rem;
+}
+.facilitator-form textarea { resize: vertical; min-height: 60px; }
+.form-status { font-size: 0.85rem; margin-top: 4px; }
+.form-status.error { color: var(--accent); }
+.form-status.ok { color: #2e7d4f; }
+
+.passage-box { border: 1px solid var(--line); background: var(--paper-alt); padding: 22px 24px; margin: 20px 0; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.7; max-height: 360px; overflow-y: auto; }
+.question-box { font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700; margin: 16px 0; }
+
+.child-form { display: grid; gap: 16px; margin: 20px 0 30px; }
+.child-form textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--line); font-size: 0.95rem; font-family: var(--font-sans); min-height: 70px; resize: vertical; }
+.child-form label { display: block; font-weight: 600; margin-bottom: 6px; }
+
+.ai-panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 20px 0; }
+@media (max-width: 820px) { .ai-panels { grid-template-columns: 1fr; } }
+.ai-panel { border: 1px solid var(--line); padding: 18px 20px; background: var(--paper); }
+.ai-panel h4 { margin: 0 0 10px; font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--slate); }
+.ai-panel .a-label { font-weight: 700; font-size: 0.85rem; margin-top: 8px; }
+.ai-panel .a-text { font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 8px; }
+.ai-panel.pending { opacity: 0.55; }
+.ai-panel.errored { border-color: var(--accent); }
+.ai-panel .err-text { color: var(--accent); font-size: 0.85rem; }
+
+.compare-table-wrap { margin-top: 20px; overflow-x: auto; border: 1px solid var(--line); }
+.compare-table-wrap table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.compare-table-wrap th, .compare-table-wrap td { border: 1px solid var(--line); padding: 12px 14px; text-align: left; vertical-align: top; }
+.compare-table-wrap th { background: var(--paper-alt); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.compare-table-wrap td.source-cell { font-weight: 700; white-space: nowrap; }
+
+.empty-state { border: 1px dashed var(--line); padding: 40px 30px; text-align: center; color: var(--ink-soft); background: var(--paper-alt); }
+
+.badge { display: inline-block; font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--line); margin-left: 8px; }
