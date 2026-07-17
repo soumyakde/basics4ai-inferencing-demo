@@ -1,10 +1,17 @@
 """
 Basics4AI — Inferencing Comparison Demo
 ========================================
-A single-passage, single-question inferencing exercise. A facilitator
-uploads a short reading passage (PDF) and an inferencing question; Claude,
-GPT, and Gemini each answer it once (cached, not re-run per child). Children
-then enter their own answer + evidence and compare all four side by side.
+A facilitator uploads a reading-passage worksheet PDF (passage + printed
+questions) and a separate answer-key PDF (sample answers + "How do you know
+this?" evidence). Because PDF layouts vary too much to parse reliably, the
+facilitator reads both extracted texts on screen and manually enters a
+dynamic list of {question, reference answer, reference evidence} — the same
+manual-entry principle as the single-question version, just extended.
+
+For each question, Claude, GPT, and Gemini each answer once (cached, not
+re-run per child). Children enter their own answer + evidence per question
+and compare all five side by side: their own, the three AIs', and the
+answer key.
 
 Non-research demo: nothing is persisted beyond the current session state
 (one JSON file on disk for restart-resilience); no child responses or PII
@@ -15,12 +22,14 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import uuid
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from pdf_extract import extract_pdf_text
 from llm_clients import call_model, get_available_models
@@ -36,8 +45,9 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 _state = {
     "passage_text": "",
     "passage_filename": "",
-    "question": "",
-    "ai_responses": {},   # {"claude": {...}, "gpt": {...}, "gemini": {...}}
+    "answer_key_text": "",
+    "answer_key_filename": "",
+    "questions": [],   # [{id, question, ref_answer, ref_evidence, ai_responses}, ...]
     "generating": False,
 }
 
@@ -93,7 +103,6 @@ def _parse_answer_evidence(raw_text: Optional[str]) -> dict:
         elif current == "evidence":
             evidence += stripped + " "
     if not answer and not evidence:
-        # Model didn't follow the format — show the raw text as the answer.
         answer = raw_text.strip()
     return {"answer": answer.strip(), "evidence": evidence.strip()}
 
@@ -122,6 +131,16 @@ async def _ask_all_models(passage: str, question: str) -> dict:
     return {"claude": claude, "gpt": gpt, "gemini": gemini}
 
 
+async def _generate_for_all_questions():
+    """Ask the 3 LLMs, once per question, concurrently across questions too."""
+    passage = _state["passage_text"]
+
+    async def fill_one(q: dict):
+        q["ai_responses"] = await _ask_all_models(passage, q["question"])
+
+    await asyncio.gather(*[fill_one(q) for q in _state["questions"]])
+
+
 def _check_code(access_code: str):
     expected = os.environ.get("FACILITATOR_ACCESS_CODE")
     if not expected:
@@ -144,63 +163,120 @@ def get_state():
         "has_passage": bool(_state["passage_text"]),
         "passage_text": _state["passage_text"],
         "passage_filename": _state["passage_filename"],
-        "question": _state["question"],
-        "ai_responses": _state["ai_responses"],
+        "questions": _state["questions"],
         "generating": _state["generating"],
         "available_models": get_available_models(),
     })
 
 
-@app.post("/api/facilitator/session")
-async def set_session(
+@app.post("/api/facilitator/extract")
+async def extract_pdfs(
     access_code: str = Form(...),
-    question: str = Form(...),
-    pdf: UploadFile = File(...),
+    passage_pdf: UploadFile = File(...),
+    answer_key_pdf: UploadFile = File(...),
 ):
+    """
+    Preview-only step: extracts text from both uploaded PDFs and returns it
+    for the facilitator to read on screen while they type in the question
+    list. Does NOT change the live session yet.
+    """
     _check_code(access_code)
 
-    if not question.strip():
-        raise HTTPException(400, "Please enter an inferencing question.")
+    passage_raw = await passage_pdf.read()
+    key_raw = await answer_key_pdf.read()
 
-    raw = await pdf.read()
     try:
-        passage_text = extract_pdf_text(raw)
+        passage_text = extract_pdf_text(passage_raw)
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, f"Passage PDF: {e}")
+    try:
+        answer_key_text = extract_pdf_text(key_raw)
+    except ValueError as e:
+        raise HTTPException(400, f"Answer key PDF: {e}")
 
     if not passage_text.strip():
-        raise HTTPException(400, "No readable text found in that PDF.")
+        raise HTTPException(400, "No readable text found in the passage PDF.")
+    if not answer_key_text.strip():
+        raise HTTPException(400, "No readable text found in the answer key PDF.")
 
-    _state["passage_text"] = passage_text
-    _state["passage_filename"] = pdf.filename or "passage.pdf"
-    _state["question"] = question.strip()
-    _state["ai_responses"] = {}
+    return JSONResponse({
+        "passage_text": passage_text,
+        "passage_filename": passage_pdf.filename or "passage.pdf",
+        "answer_key_text": answer_key_text,
+        "answer_key_filename": answer_key_pdf.filename or "answer_key.pdf",
+    })
+
+
+class QuestionIn(BaseModel):
+    question: str
+    ref_answer: str = ""
+    ref_evidence: str = ""
+
+
+class ActivateBody(BaseModel):
+    access_code: str
+    passage_text: str
+    passage_filename: str = ""
+    answer_key_text: str = ""
+    answer_key_filename: str = ""
+    questions: List[QuestionIn]
+
+
+@app.post("/api/facilitator/activate")
+async def activate(body: ActivateBody):
+    """
+    Final step: stores the passage, answer key, and the facilitator-entered
+    question list, then asks the 3 LLMs once per question (the only
+    cost-incurring step) and caches the results for every child.
+    """
+    _check_code(body.access_code)
+
+    if not body.passage_text.strip():
+        raise HTTPException(400, "Missing passage text.")
+    if not body.questions:
+        raise HTTPException(400, "Add at least one question before activating.")
+    for q in body.questions:
+        if not q.question.strip():
+            raise HTTPException(400, "Every question needs text — remove any empty rows.")
+
+    _state["passage_text"] = body.passage_text
+    _state["passage_filename"] = body.passage_filename
+    _state["answer_key_text"] = body.answer_key_text
+    _state["answer_key_filename"] = body.answer_key_filename
+    _state["questions"] = [
+        {
+            "id": uuid.uuid4().hex[:8],
+            "question": q.question.strip(),
+            "ref_answer": q.ref_answer.strip(),
+            "ref_evidence": q.ref_evidence.strip(),
+            "ai_responses": {},
+        }
+        for q in body.questions
+    ]
     _state["generating"] = True
     _save_state()
 
-    ai_responses = await _ask_all_models(passage_text, question.strip())
+    await _generate_for_all_questions()
 
-    _state["ai_responses"] = ai_responses
     _state["generating"] = False
     _save_state()
 
-    return JSONResponse({"ok": True, "ai_responses": ai_responses})
+    return JSONResponse({"ok": True, "questions": _state["questions"]})
 
 
 @app.post("/api/facilitator/regenerate")
 async def regenerate(access_code: str = Form(...)):
-    """Re-ask the 3 LLMs for the current passage/question (e.g. after a transient failure)."""
+    """Re-ask the 3 LLMs for every current question (e.g. after a transient failure)."""
     _check_code(access_code)
-    if not _state["passage_text"] or not _state["question"]:
-        raise HTTPException(400, "No active passage/question to regenerate.")
+    if not _state["passage_text"] or not _state["questions"]:
+        raise HTTPException(400, "No active passage/questions to regenerate.")
 
     _state["generating"] = True
     _save_state()
-    ai_responses = await _ask_all_models(_state["passage_text"], _state["question"])
-    _state["ai_responses"] = ai_responses
+    await _generate_for_all_questions()
     _state["generating"] = False
     _save_state()
-    return JSONResponse({"ok": True, "ai_responses": ai_responses})
+    return JSONResponse({"ok": True, "questions": _state["questions"]})
 
 
 if __name__ == "__main__":
