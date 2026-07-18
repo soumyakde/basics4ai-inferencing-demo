@@ -125,7 +125,7 @@ def call_claude(
     system: str = "",
     temperature: float = 0.0,
     max_tokens: int = 2000,
-    model_id: str = "claude-sonnet-4-5",
+    model_id: str = "claude-haiku-4-5-20251001",
 ) -> Dict[str, Any]:
     """
     Call Anthropic Claude API.
@@ -257,7 +257,7 @@ def call_openai(
     system: str = "",
     temperature: float = 0.0,
     max_tokens: int = 2000,
-    model_id: str = "gpt-4o-mini",
+    model_id: str = "gpt-4.1-nano",
 ) -> Dict[str, Any]:
     """
     Call OpenAI GPT API.
@@ -415,9 +415,9 @@ def call_groq(
 
 # Default model IDs — override by passing model_id to individual functions
 _DEFAULT_MODELS = {
-    "claude": "claude-sonnet-4-5",
+    "claude": "claude-haiku-4-5-20251001",
     "gemini": "gemini-2.5-flash",
-    "gpt":    "gpt-4o-mini",
+    "gpt":    "gpt-4.1-nano",
     "groq":   "llama-3.3-70b-versatile",
 }
 
